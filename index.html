@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Click Prototype: Parkir Cerdas</title>
+<style>
+:root{--bg:#F4F6FA;--panel:#fff;--ink:#14284B;--muted:#4A5568;--line:#CBD5E4;--btn:#14284B;--btnink:#fff;--coral:#C94B33;--teal:#1F7A6F;--free:#CFE8E3;--road:#5B6676;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1729;--panel:#16233D;--ink:#E8EEF8;--muted:#A9B7CF;--line:#2B3C5E;--btn:#E8EEF8;--btnink:#0E1729;--free:#1E4A45;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E1729;--panel:#16233D;--ink:#E8EEF8;--muted:#A9B7CF;--line:#2B3C5E;--btn:#E8EEF8;--btnink:#0E1729;--free:#1E4A45;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:24px 20px 40px}
+h1{font-size:28px;line-height:1.2;margin:0 0 6px}
+.lead{margin:0 0 24px;color:var(--muted);max-width:60ch}
+.grid{display:grid;gap:20px;grid-template-columns:1fr}
+@media(min-width:860px){.grid{grid-template-columns:420px 1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+h2{font-size:18px;margin:0 0 12px}
+.bezel{background:#1B2433;padding:16px;border-radius:16px}
+.lcd{background:#A6C84A;color:#1F3A0F;border-radius:6px;padding:16px;font:600 clamp(20px,5.4vw,30px)/1.35 ui-monospace,Menlo,"Courier New",monospace;white-space:pre;overflow:hidden;box-shadow:inset 0 2px 6px rgba(0,0,0,.25)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.chip{border-radius:999px;padding:4px 14px;font-size:14px;background:var(--btn);color:var(--btnink)}
+.chip.open{background:var(--teal);color:#fff}
+.actions{display:grid;gap:10px}
+button{font:inherit;min-height:48px;padding:0 18px;border-radius:10px;border:2px solid var(--btn);background:var(--btn);color:var(--btnink);cursor:pointer;text-align:left}
+button.alt{background:transparent;color:var(--ink)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.slots button{text-align:center;padding:0 8px;font-size:15px}
+svg{width:100%;height:auto;display:block}
+#car{transition:transform .7s ease,opacity .3s}
+#bar{transition:transform .5s ease;transform-origin:110px 250px;transform-box:view-box}
+.sl{fill:var(--free);stroke:var(--ink);stroke-width:3;transition:fill .3s}
+.sl.on{fill:var(--coral)}
+.st{fill:var(--ink);font:700 16px system-ui,sans-serif}
+.st.on{fill:#fff}
+.hint{color:var(--muted);font-size:14px;margin:10px 0 0}
+#log{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:15px}
+#log li:first-child{font-weight:600}
+#log li{color:var(--muted)}
+#log li:first-child{color:var(--ink)}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<div>
+<h1>Click prototype parkir cerdas</h1>
+<p class="lead">Klik tombol secara berurutan untuk mencoba alur dari mobil datang sampai palang menutup. Layar LCD dan maket ikut berubah.</p>
+</div>
+<button class="alt" id="reset" type="button">Ulangi dari awal</button>
+</div>
+<div class="grid">
+<section class="panel" aria-labelledby="h-lcd">
+<h2 id="h-lcd">Layar LCD dan kontrol gerbang</h2>
+<div class="bezel"><div class="lcd" id="lcd" aria-live="polite"></div></div>
+<div class="chips"><span class="chip" id="barChip">Palang: tertutup</span><span class="chip" id="gateChip">Sensor gerbang: kosong</span></div>
+<div class="actions">
+<button id="bArrive" type="button">Mobil datang</button>
+<button id="bValid" type="button">Tempel kartu terdaftar</button>
+<button id="bInvalid" type="button">Tempel kartu tidak terdaftar</button>
+<button id="bPass" type="button">Mobil lewat</button>
+<button id="bLeave" class="alt" type="button">Mobil pergi</button>
+</div>
+</section>
+<section class="panel" aria-labelledby="h-map">
+<h2 id="h-map">Maket parkir</h2>
+<svg viewBox="0 0 560 360" role="img" aria-label="Denah maket: tiga slot parkir, jalur kendaraan, dan palang di gerbang masuk">
+<rect x="0" y="250" width="560" height="70" rx="6" fill="var(--road)"/>
+<line x1="0" y1="285" x2="560" y2="285" stroke="#fff" stroke-opacity=".5" stroke-width="3" stroke-dasharray="14 12"/>
+<g id="slotsG"></g>
+<rect x="64" y="226" width="40" height="16" rx="3" fill="#111827"/><circle id="gLed" cx="98" cy="234" r="4" fill="#6B7280"/>
+<rect x="70" y="326" width="64" height="22" rx="4" fill="#111827"/><text x="102" y="342" text-anchor="middle" fill="#fff" font-size="12" font-family="system-ui,sans-serif">RFID</text>
+<line id="bar" x1="110" y1="250" x2="110" y2="320" stroke="var(--coral)" stroke-width="8" stroke-linecap="round"/>
+<circle cx="110" cy="250" r="7" fill="var(--ink)"/>
+<g id="car" style="transform:translate(40px,272px);opacity:0"><rect width="44" height="26" rx="7" fill="#E8A33D" stroke="#14284B" stroke-width="2"/></g>
+</svg>
+<div class="slots" role="group" aria-label="Simulasi sensor slot">
+<button class="alt" id="t0" type="button"></button><button class="alt" id="t1" type="button"></button><button class="alt" id="t2" type="button"></button>
+</div>
+<p class="hint">Tombol slot meniru sensor inframerah: klik untuk mengisi atau mengosongkan slot.</p>
+</section>
+</div>
+<section class="panel" style="margin-top:20px" aria-labelledby="h-log">
+<h2 id="h-log">Catatan kejadian</h2>
+<ul id="log" aria-live="polite"></ul>
+</section>
+</main>
+<script>
+(function(){
+var SX=[190,310,430], st, $=function(i){return document.getElementById(i)};
+var slotsG=$("slotsG"), NS="http://www.w3.org/2000/svg";
+function mk(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e}
+var rects=[],texts=[],leds=[];
+SX.forEach(function(x,i){
+  var r=mk("rect",{x:x,y:50,width:100,height:170,rx:12,"class":"sl"});
+  var t=mk("text",{x:x+50,y:140,"text-anchor":"middle","class":"st"});t.textContent="Slot "+(i+1);
+  slotsG.appendChild(r);slotsG.appendChild(t);
+  slotsG.appendChild(mk("rect",{x:x+20,y:26,width:60,height:18,rx:3,fill:"#111827"}));
+  var l=mk("circle",{cx:x+70,cy:35,r:4,fill:"#6B7280"});slotsG.appendChild(l);
+  rects.push(r);texts.push(t);leds.push(l);
+});
+function init(){st={mode:"IDLE",slots:[false,false,false],busy:false,log:[]};}
+function free(){return st.slots.filter(function(s){return !s}).length}
+function log(m){st.log.unshift(m);st.log=st.log.slice(0,5)}
+function render(){
+  var n=free(),L1,L2;
+  if(st.mode==="IDLE"){L1="Selamat Datang";L2="Slot kosong: "+n}
+  else if(st.mode==="WAIT"){L1="Tempelkan kartu";L2="Slot kosong: "+n}
+  else if(st.mode==="OPEN"){L1="Silakan Masuk";L2="Slot kosong: "+n}
+  else if(st.mode==="DENIED"){L1="Akses Ditolak";L2="Kartu tdk valid"}
+  else {L1="Parkir Penuh";L2="Mohon menunggu"}
+  $("lcd").textContent=L1+"\n"+L2;
+  var open=st.mode==="OPEN"||(st.passing===true);
+  $("barChip").textContent="Palang: "+(open?"terbuka":"tertutup");
+  $("barChip").className="chip"+(open?" open":"");
+  $("bar").style.transform=open?"rotate(-90deg)":"none";
+  var atGate=st.mode!=="IDLE"||st.passing===true;
+  $("gateChip").textContent="Sensor gerbang: "+(atGate?"terdeteksi":"kosong");
+  $("gLed").setAttribute("fill",atGate?"#E8453C":"#6B7280");
+  st.slots.forEach(function(o,i){
+    rects[i].setAttribute("class","sl"+(o?" on":""));
+    texts[i].setAttribute("class","st"+(o?" on":""));
+    leds[i].setAttribute("fill",o?"#E8453C":"#6B7280");
+    var b=$("t"+i);b.textContent="Slot "+(i+1)+": "+(o?"terisi":"kosong");b.disabled=st.busy;
+  });
+  $("bArrive").disabled=!(st.mode==="IDLE"&&!st.busy);
+  $("bValid").disabled=st.mode!=="WAIT";
+  $("bInvalid").disabled=st.mode!=="WAIT";
+  $("bPass").disabled=st.mode!=="OPEN"||st.busy;
+  $("bLeave").disabled=!(st.mode==="WAIT"||st.mode==="FULL");
+  $("log").innerHTML=st.log.map(function(m){return "<li>"+m+"</li>"}).join("");
+}
+function car(x,y,o,anim){var c=$("car");if(!anim){c.style.transition="none"}c.style.transform="translate("+x+"px,"+y+"px)";c.style.opacity=o;if(!anim){void c.offsetWidth;c.style.transition=""}}
+$("bArrive").onclick=function(){
+  car(40,272,1,false);log("Sensor gerbang mendeteksi kendaraan");
+  if(free()===0){st.mode="FULL";log("Semua slot terisi: palang tetap tertutup")}else{st.mode="WAIT"}
+  render();
+};
+$("bValid").onclick=function(){st.mode="OPEN";log("Kartu terdaftar: servo membuka palang");render()};
+$("bInvalid").onclick=function(){
+  st.mode="DENIED";st.busy=true;log("Kartu tidak terdaftar: akses ditolak");render();
+  setTimeout(function(){st.mode="WAIT";st.busy=false;render()},1600);
+};
+$("bLeave").onclick=function(){car(40,272,0,false);st.mode="IDLE";log("Kendaraan meninggalkan gerbang");render()};
+$("bPass").onclick=function(){
+  st.busy=true;st.mode="IDLE";st.passing=true;log("Kendaraan melewati gerbang");render();
+  var i=st.slots.indexOf(false),sx=i>=0?SX[i]+28:600;
+  car(sx,272,1,true);
+  setTimeout(function(){st.passing=false;log("Gerbang bebas: palang menutup");render()},450);
+  if(i<0){setTimeout(function(){car(sx,272,0,true);st.busy=false;render()},800);return}
+  setTimeout(function(){car(sx,130,1,true)},800);
+  setTimeout(function(){car(sx,130,0,true);st.slots[i]=true;st.busy=false;log("Sensor slot "+(i+1)+" terisi: slot kosong "+free());render()},1600);
+};
+[0,1,2].forEach(function(i){$("t"+i).onclick=function(){
+  st.slots[i]=!st.slots[i];log("Sensor slot "+(i+1)+(st.slots[i]?" terisi":" kosong")+": slot kosong "+free());
+  if(st.mode==="FULL"&&free()>0){st.mode="WAIT";log("Ada slot kosong: silakan tempelkan kartu")}
+  render();
+}});
+$("reset").onclick=function(){init();car(40,272,0,false);render()};
+init();render();
+})();
+</script>
+</body>
+</html>
